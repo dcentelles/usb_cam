@@ -53,7 +53,10 @@
 #include <sensor_msgs/fill_image.h>
 
 #include <usb_cam/usb_cam.h>
-
+extern "C"{
+#include <libavutil/imgutils.h>
+#include <libavcodec/avcodec.h>
+}
 #define CLEAR(x) memset (&(x), 0, sizeof (x))
 
 namespace usb_cam {
@@ -394,7 +397,7 @@ int UsbCam::init_mjpeg_decoder(int image_width, int image_height)
   avcodec_context_->codec_type = AVMEDIA_TYPE_VIDEO;
 #endif
 
-  avframe_camera_size_ = avpicture_get_size(AV_PIX_FMT_YUV422P, image_width, image_height);
+  //avframe_rgb_size_ = av_image_get_buffer_size(AV_PIX_FMT_RGB24, image_width, image_height, 32);
   avframe_rgb_size_ = avpicture_get_size(AV_PIX_FMT_RGB24, image_width, image_height);
 
   /* open it */
@@ -419,6 +422,7 @@ void UsbCam::mjpeg2rgb(char *MJPEG, int len, char *RGB, int NumPixels)
 
   avpkt.size = len;
   avpkt.data = (unsigned char*)MJPEG;
+
   decoded_len = avcodec_decode_video2(avcodec_context_, avframe_camera_, &got_picture, &avpkt);
 
   if (decoded_len < 0)
@@ -438,15 +442,9 @@ void UsbCam::mjpeg2rgb(char *MJPEG, int len, char *RGB, int NumPixels)
 
   int xsize = avcodec_context_->width;
   int ysize = avcodec_context_->height;
-  int pic_size = avpicture_get_size(avcodec_context_->pix_fmt, xsize, ysize);
-  if (pic_size != avframe_camera_size_)
-  {
-    ROS_ERROR("outbuf size mismatch.  pic_size: %d bufsize: %d", pic_size, avframe_camera_size_);
-    return;
-  }
 
   video_sws_ = sws_getContext(xsize, ysize, avcodec_context_->pix_fmt, xsize, ysize, AV_PIX_FMT_RGB24, SWS_BILINEAR, NULL,
-			      NULL,  NULL);
+                  NULL,  NULL);
   sws_scale(video_sws_, avframe_camera_->data, avframe_camera_->linesize, 0, ysize, avframe_rgb_->data,
             avframe_rgb_->linesize);
   sws_freeContext(video_sws_);
@@ -773,8 +771,8 @@ void UsbCam::init_mmap(void)
 
     buffers_[n_buffers_].length = buf.length;
     buffers_[n_buffers_].start = mmap(NULL /* start anywhere */, buf.length, PROT_READ | PROT_WRITE /* required */,
-				      MAP_SHARED /* recommended */,
-				      fd_, buf.m.offset);
+                      MAP_SHARED /* recommended */,
+                      fd_, buf.m.offset);
 
     if (MAP_FAILED == buffers_[n_buffers_].start)
       errno_exit("mmap");
@@ -1003,8 +1001,8 @@ void UsbCam::open_device(void)
 }
 
 void UsbCam::start(const std::string& dev, io_method io_method,
-		   pixel_format pixel_format, int image_width, int image_height,
-		   int framerate)
+           pixel_format pixel_format, int image_width, int image_height,
+           int framerate)
 {
   camera_dev_ = dev;
 

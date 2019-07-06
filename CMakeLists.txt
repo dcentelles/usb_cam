@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(usb_cam)
 
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules)
+
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -8,6 +10,8 @@ find_package(catkin REQUIRED COMPONENTS image_transport roscpp std_msgs std_srvs
 
 ## pkg-config libraries
 find_package(PkgConfig REQUIRED)
+find_package(FFmpeg REQUIRED)
+
 pkg_check_modules(avcodec libavcodec REQUIRED)
 pkg_check_modules(swscale libswscale REQUIRED)
 
@@ -31,6 +35,7 @@ include_directories(include
   ${catkin_INCLUDE_DIRS}
   ${avcodec_INCLUDE_DIRS}
   ${swscale_INCLUDE_DIRS}
+  ${FFMPEG_INCLUDE_DIR}
 )
 
 ## Build the USB camera library
@@ -39,6 +44,7 @@ target_link_libraries(${PROJECT_NAME}
   ${avcodec_LIBRARIES}
   ${swscale_LIBRARIES}
   ${catkin_LIBRARIES}
+  ${FFMPEG_LIBRARIES}
 )
 
 ## Declare a cpp executable
@@ -48,7 +54,9 @@ target_link_libraries(${PROJECT_NAME}_node
   ${avcodec_LIBRARIES}
   ${swscale_LIBRARIES}
   ${catkin_LIBRARIES}
+  ${FFMPEG_LIBRARIES}
 )
+message("############# ${FFMPEG_LIBRARIES}")
 
 #############
 ## Install ##
